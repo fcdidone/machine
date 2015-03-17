@@ -1,0 +1,152 @@
+---
+title: "Machine learning and accelerometers"
+author: "Fábio Corrêa Didoné"
+date: "Monday, March 16, 2015"
+output:  html_document
+ 
+---
+
+## Introduction
+
+
+The goal for this project is to create a model using data collected by accelerometers devices such as _Jawbone Up_, _Nike FuelBand_, and _Fitbit_ in order to predict which activity the subject is performing how well is he performing. The subject was asked to perform barbell lifts correct and incorrectly. The class "A" is the correct weightlifting, while the others classes are the incorrect weightlifting.   
+
+More information is available in this website: <http://groupware.les.inf.puc-rio.br/har>
+
+
+## Analysing the data set
+
+* Loading the data set
+
+```{r,cache=TRUE}
+
+setwd("c:/coursera/lmachine")
+
+
+## The training dataset dataset
+
+read.csv("pml-training.csv") -> train
+
+##  20 test cases that will be predict with te model
+
+read.csv("pml-testing.csv")-> test
+
+```
+
+* Choosing features and excluding any NAs values
+
+```{r}
+
+## Analysing which columns have NAs in the test  data set. These columns will be excluded.
+
+which(mapply(function(x) any(is.na(test[,x])), 1:length(test) )) -> tna
+
+## Excluding columns with NAs from the dataset
+
+train[,-c(1,tna)]-> train0
+test[,-c(1,tna)]-> test0
+
+
+```
+
+* Plot for each activity in the training dataset.
+
+```{r}
+barplot(table(train0$classe))
+```
+
+
+## Cross validation
+
+The key idea is to estimate the test accuraracy with the training dataset.
+
+If the whole dataset is used, the expected in sample error rate will be low, but the out sample error might be higher. For this reason the training dataset was splited i and the sample error rate was tested in a part of the training set splited in order to estimate the out sample error.
+
+```{r}
+library(caret)
+
+## Splitting the training data set
+
+set.seed(700)
+inTrain <- createDataPartition(y=train0$classe,
+                               p=0.75, list=FALSE)
+training <- train0[inTrain,]
+testing <- train0[-inTrain,]
+ 
+```
+
+## Models
+
+Two method were used to create the models: **Random forest** and  **Generalized Boosted Regression Models**
+
+```{r, eval=FALSE}
+
+## This chunk will not be evaluated beacause it would take a lot of time.
+
+set.seed(701)
+mod1 <- train(classe ~ .,data=training,method="gbm",verbose=FALSE)
+mod2 <- train(classe ~.,data=training,method="rf")
+```
+
+```{r}
+## Load the two models
+
+load("c:/coursera/lmachine/mod1.RData")
+load("c:/coursera/lmachine/mod2.RData")
+
+```
+## Confusion matrix
+
+The variable that is being predicted is a categorial variable.Hence, the accuracy and the kappa statistic are common values calculated to estimate the sample error rate . These variables are shown in this confussion matrix together with other parameters for the both models
+
+```{r}
+library(knitr)
+
+## Predict values with the testing part
+
+suppressMessages(predict(mod1,testing)) -> p1
+suppressMessages(predict(mod2,testing)) -> p2
+
+confusionMatrix(p1,testing$classe) -> c1
+confusionMatrix(p2,testing$classe) -> c2
+kable(data.frame(Accuracy = c(c1$overall[1],c2$overall[1]), Kappa = c(c1$overall[2],c2$overall[2]),row.names = c("Mod1 (gmb)", "Mod2 (Random Forest)")),digits = 4,align = "c")
+
+
+```
+
+## Variable importance
+
+Also, it is important to know which variable are the most important in the two models.
+
+```{r,fig.show='hold'}
+
+plot(varImp(mod1),10, main = "Mod 1 (gmb)")
+plot(varImp(mod2),10, main = "Mod 2 (Random Forest)")
+
+```
+
+## Prediction with the test dataset
+
+Both model were used to predict the class variable in the test dataset. The results were the same:
+
+```{r}
+predict(mod1,test0)->p3
+predict(mod2,test0)->p4
+all(p3 == p4)
+
+```
+
+## Conclussion
+
+- The models have high accuracy and Kappa statistic evaluated using cross-validation, the out sample error is low
+
+- The most important variable in the models are similar
+
+- Both models predict the same class variable in the test dataset, hence both could be used.
+
+
+
+
+
+
+
