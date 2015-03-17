@@ -18,7 +18,7 @@ More information is available in this website: <http://groupware.les.inf.puc-rio
 
 * Loading the data set
 
-```{r,cache=TRUE}
+```{r}
 
 setwd("c:/coursera/lmachine")
 
